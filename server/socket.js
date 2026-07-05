@@ -6,8 +6,10 @@ const userSockets = new Map(); // Maps userId -> socketId
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:5173",
-      methods: ["GET", "POST"]
+      // 💎 Ensures that local testing AND your live Netlify frontend domain are both authorized
+      origin: [process.env.FRONTEND_URL, "http://localhost:5173"].filter(Boolean),
+      methods: ["GET", "POST"],
+      credentials: true
     }
   });
 

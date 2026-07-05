@@ -54,8 +54,16 @@ const Notifications = () => {
   useEffect(() => {
     if (!user) return;
 
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-    const socket = io(socketUrl);
+    // Grab your fallback base API string
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+    
+    // 💎 FIXED: Strips out the "/api" route suffix cleanly to construct your root connection domain URL
+    const socketUrl = apiUrl.replace('/api', '');
+    
+    // Initialize connection using stable websocket and polling transport sequences
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling']
+    });
     
     socket.emit('register_user', user.id || user._id);
 
@@ -92,7 +100,7 @@ const Notifications = () => {
       {/* CORE FRAME LAYOUT AREA */}
       <div className="flex flex-1 flex-col overflow-hidden">
         
-        {/* TOP INTERACTIVE NAVBAR (Matches reference dashboard completely) */}
+        {/* TOP INTERACTIVE NAVBAR */}
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white px-8 shadow-xs">
           <div className="flex items-center gap-3">
             <span className="h-4 w-4 rounded-full border border-slate-300 bg-slate-50" />
