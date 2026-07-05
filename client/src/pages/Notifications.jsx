@@ -54,7 +54,7 @@ const Notifications = () => {
   useEffect(() => {
     if (!user) return;
 
-    const socketUrl = import.meta.env.VITE_WS_URL || "http://localhost:3000";
+    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
     const socket = io(socketUrl);
     
     socket.emit('register_user', user.id || user._id);
