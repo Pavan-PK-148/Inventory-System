@@ -10,7 +10,9 @@ import {
   Loader2,
   ScanBarcode,
   AlertTriangle,
-  Printer // 🖨️ New Lucide Icon Added
+  Printer,
+  FileSpreadsheet, // 📄 Added for file dropzone illustration
+  Sparkles        // ✨ Added for AI branding
 } from 'lucide-react';
 
 import toast from 'react-hot-toast';
@@ -26,6 +28,7 @@ import { generateAssetLabelPDF } from '../components/BarcodeLabelGenerator';
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ocrLoading, setOcrLoading] = useState(false); // ✨ Live tracker for scanning action
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -98,7 +101,52 @@ const Products = () => {
     setIsModalOpen(true);
   };
 
-  // Safe Deletion with Action Toast Confirmation
+  // ✨ Handle parsing raw image text through ocr.js backend stream router
+  // ✨ Handle parsing raw image text through ocr.js backend stream router
+  const handleInvoiceUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const dataPayload = new FormData();
+    dataPayload.append('invoice', file);
+
+    setOcrLoading(true);
+    const parsingToast = toast.loading('AI Lens analyzing text parameters...');
+
+    try {
+      // Direct call out to backend ocr.js endpoint route
+      const response = await API.post('/ocr/scan-invoice', dataPayload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data?.success && response.data?.payload) {
+        const payload = response.data.payload;
+        
+        // Dynamically auto-fill state boundaries with explicit string conversion typecasts
+        setFormData((prev) => ({
+          ...prev,
+          name: payload.name || prev.name,
+          sku: payload.sku || prev.sku,
+          price: payload.price !== undefined && payload.price !== null ? String(payload.price) : prev.price,
+          quantity: payload.quantity !== undefined && payload.quantity !== null ? String(payload.quantity) : prev.quantity,
+          supplier: payload.supplier || prev.supplier
+        }));
+
+        toast.success('Invoice data successfully extracted!', { id: parsingToast });
+      } else {
+        throw new Error('Malformed execution output bundle.');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error.response?.data?.error || 'Failed to securely map structured parameters.',
+        { id: parsingToast }
+      );
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
   const confirmDelete = (id, productName) => {
     toast((t) => (
       <div className="flex flex-col gap-3 p-1">
@@ -408,7 +456,6 @@ const Products = () => {
 
                         <td className="px-6 py-5">
                           <div className="flex justify-end gap-1.5">
-                            {/* 🖨️ NEW FEATURE-4 PRINT TAG ACTION BUTTON BUTTON */}
                             <button
                               onClick={() => generateAssetLabelPDF(product)}
                               className="rounded-xl p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-800 cursor-pointer"
@@ -446,7 +493,6 @@ const Products = () => {
           <AnimatePresence>
             {isModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-                {/* BACKDROP */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -455,7 +501,6 @@ const Products = () => {
                   className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
                 />
 
-                {/* MODAL WINDOW BODY */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.97, y: 16 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -463,14 +508,13 @@ const Products = () => {
                   transition={{ duration: 0.2 }}
                   className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] bg-white p-8 md:p-10 shadow-2xl z-10 border border-slate-100"
                 >
-                  {/* HEADER */}
                   <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                     <div>
                       <h2 className="text-[32px] font-black tracking-tight text-slate-900">
                         {editingProduct ? 'Modify Asset Levels' : 'Create Inventory Entry'}
                       </h2>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {editingProduct ? 'Update quantity constraints for this entity.' : 'Fill schema attributes to save data record.'}
+                        {editingProduct ? 'Update quantity constraints for this entity.' : 'Fill attributes manually or upload an invoice image via AI.'}
                       </p>
                     </div>
                     <button
@@ -482,11 +526,40 @@ const Products = () => {
                     </button>
                   </div>
 
-                  {/* FORM BODY */}
-                  <form onSubmit={handleFormSubmit} className="mt-8 space-y-6">
+                  {/* ✨ AI FILE INGESTION CONTAINER ZONE (Hidden during editing mode) */}
+                  {!editingProduct && (
+                    <div className="mt-6 rounded-2xl border border-dashed border-primary-300 bg-gradient-to-r from-primary-50/40 to-cyan-50/20 p-5 relative overflow-hidden group">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5 text-center sm:text-left">
+                          <div className="rounded-xl bg-primary-100 p-3 text-primary-600 shadow-inner flex shrink-0">
+                            {ocrLoading ? <Loader2 size={22} className="animate-spin text-primary-500" /> : <Sparkles size={22} className="text-primary-600 animate-pulse" />}
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-black text-slate-800 flex items-center gap-1.5 justify-center sm:justify-start">
+                              AI Invoice Scanner Integration
+                            </h4>
+                            <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                              Upload vendor invoices or manifests to auto-fill schema forms instantly.
+                            </p>
+                          </div>
+                        </div>
+                        <label className="relative flex items-center justify-center rounded-xl bg-slate-950 px-5 py-3 text-xs font-black tracking-wide text-white shadow-md hover:bg-slate-850 cursor-pointer transition-all shrink-0">
+                          <span>Select Document</span>
+                          <input 
+                            type="file" 
+                            accept="image/*,application/pdf" 
+                            onChange={handleInvoiceUpload} 
+                            disabled={ocrLoading}
+                            className="hidden" 
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleFormSubmit} className="mt-6 space-y-6">
                     <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
                       
-                      {/* PRODUCT NAME */}
                       <div className="flex flex-col">
                         <label className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">
                           Product Name <span className="text-rose-500">*</span>
@@ -501,7 +574,6 @@ const Products = () => {
                         />
                       </div>
 
-                      {/* WAREHOUSE LOCATION */}
                       <div className="flex flex-col">
                         <label className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">
                           Warehouse Location Assignment
@@ -518,7 +590,6 @@ const Products = () => {
                         </select>
                       </div>
 
-                      {/* SKU IDENTIFIER */}
                       <div className="flex flex-col">
                         <label className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">
                           SKU Code Identifier <span className="text-rose-500">*</span>
@@ -533,7 +604,6 @@ const Products = () => {
                         />
                       </div>
 
-                      {/* CATEGORY GROUP */}
                       <div className="flex flex-col">
                         <label className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">
                           Category Group
@@ -550,7 +620,6 @@ const Products = () => {
                         </select>
                       </div>
 
-                      {/* UNIT COST */}
                       <div className="flex flex-col">
                         <label className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">
                           Unit Cost ($) <span className="text-rose-500">*</span>
@@ -566,7 +635,6 @@ const Products = () => {
                         />
                       </div>
 
-                      {/* QUANTITY CONSTRAINTS */}
                       <div className="flex flex-col">
                         <label className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">
                           {editingProduct ? 'Adjust Stock Target' : 'Initial Stock Volume'} <span className="text-rose-500">*</span>
@@ -580,7 +648,6 @@ const Products = () => {
                         />
                       </div>
 
-                      {/* SUPPLIER PARTNER */}
                       <div className="flex flex-col">
                         <label className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">
                           Assigned Supplier Partner
@@ -595,7 +662,6 @@ const Products = () => {
                         />
                       </div>
 
-                      {/* BARCODE SIGNATURE */}
                       <div className="flex flex-col">
                         <div className="flex items-center justify-between">
                           <label className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">
@@ -624,7 +690,6 @@ const Products = () => {
 
                     </div>
 
-                    {/* MODAL CONTROLS FOOTER */}
                     <div className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-6">
                       <button
                         type="button"
@@ -646,7 +711,6 @@ const Products = () => {
             )}
           </AnimatePresence>
 
-          {/* BARCODE ENGINE ATTACHMENT */}
           <BarcodeScannerModal
             isOpen={isScannerOpen}
             onClose={() => setIsScannerOpen(false)}
