@@ -1,6 +1,5 @@
 import express from 'express';
 import multer from 'multer';
-import Tesseract from 'tesseract.js';
 import Groq from 'groq-sdk';
 import fs from 'fs';
 
@@ -12,7 +11,7 @@ const upload = multer({
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('PDF reading is not supported by Tesseract. Please upload a PNG or JPEG image instead.'), false);
+      cb(new Error('PDF format is not supported by the OCR engine. Please upload a clear image (PNG or JPEG) instead!'), false);
     }
   }
 });
@@ -34,19 +33,13 @@ router.post('/scan-invoice', (req, res, next) => {
     filePath = req.file.path;
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-    // Step A: Parse raw textual blocks using localized Tesseract engine
-    const { data: { text } } = await Tesseract.recognize(filePath, 'eng');
+    const fileBuffer = fs.readFileSync(filePath);
+    const base64Image = fileBuffer.toString('base64');
+    const dataUrl = `data:${req.file.mimetype};base64,${base64Image}`;
 
-    if (!text || text.trim() === '') {
-      throw new Error("Could not extract legible text from image. Make sure the document text is clear.");
-    }
-
-    // Step B: Direct the Groq Model to structurally serialize parsed fields
-    const prompt = `You are an automated logistics parser. Parse the raw invoice text into a clean JSON object.
+    const prompt = `You are an automated logistics parser. Scan the provided invoice image and extract properties into a clean JSON object.
     
-    Extract fields by scanning for labels like Item Description, SKU Reference, Unit Price, Unit Cost, Qty, Quantity, and Supplier.
-    
-    Map it EXACTLY to this schema structure format:
+    Map the data EXACTLY to this schema structure format:
     { 
       "name": "string product clear name", 
       "sku": "string uppercase code pattern", 
@@ -56,23 +49,31 @@ router.post('/scan-invoice', (req, res, next) => {
     }
     
     CRITICAL RULES:
-    1. For "price", locate the unit price/unit cost numeric value (e.g., if it says "$250.00", extract 250). Do NOT use total amounts.
-    2. For "quantity", locate the unit count integer number (e.g., if it says "45", extract 45).
-    3. Output ONLY valid raw JSON data. Do not include markdown code block syntax formatting (\`\`\`json) or extra remarks.
-    
-    Raw text content from invoice document:
-    ${text}`;
+    1. For "price", extract the single unit price/unit cost numeric value (e.g., if it says "$250.00", return 250). Do NOT map total sums.
+    2. For "quantity", extract the single unit count volume integer (e.g., if it says "45", return 45).
+    3. Output ONLY valid raw JSON data. Do not wrap the response inside markdown block code fences (\`\`\`json) or include extra conversational remarks.`;
 
     const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: dataUrl } }
+          ]
+        }
+      ],
+      model: 'qwen/qwen3.6-27b',
       temperature: 0.1
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content?.trim();
     
-    // 🧼 STRIP MARKDOWN FENCES safely
-    const cleanJsonString = responseContent
+    // 🧼 1. Strip internal model thinking parameters (<think>...</think>)
+    let cleanJsonString = responseContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+    // 🧼 2. Strip standard markdown code blocks (```json ... ```)
+    cleanJsonString = cleanJsonString
       .replace(/^```json/i, '')
       .replace(/^```/, '')
       .replace(/```$/, '')
@@ -80,7 +81,6 @@ router.post('/scan-invoice', (req, res, next) => {
 
     const parsedData = JSON.parse(cleanJsonString);
 
-    // Clean up temporary uploads filesystem cache file
     if (filePath && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
@@ -90,7 +90,7 @@ router.post('/scan-invoice', (req, res, next) => {
     if (filePath && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
-    console.error("OCR Extraction processing pipeline error:", error);
+    console.error("OCR Vision Extraction processing error:", error);
     res.status(500).json({ error: "Automated ingestion breakdown: " + error.message });
   }
 });

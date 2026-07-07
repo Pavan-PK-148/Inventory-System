@@ -102,7 +102,6 @@ const Products = () => {
   };
 
   // ✨ Handle parsing raw image text through ocr.js backend stream router
-  // ✨ Handle parsing raw image text through ocr.js backend stream router
   const handleInvoiceUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -114,9 +113,10 @@ const Products = () => {
     const parsingToast = toast.loading('AI Lens analyzing text parameters...');
 
     try {
-      // Direct call out to backend ocr.js endpoint route
+      // Direct call out to backend ocr.js endpoint route with a 60-second network timeout window
       const response = await API.post('/ocr/scan-invoice', dataPayload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000 // ⏱️ Keeps connection active up to 60s for slow production channels
       });
 
       if (response.data?.success && response.data?.payload) {
