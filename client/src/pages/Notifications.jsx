@@ -11,7 +11,8 @@ import {
   ShieldAlert,
   Clock,
   LogOut,
-  RefreshCw
+  RefreshCw,
+  Menu
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import API from '../api/axiosInstance';
@@ -37,7 +38,9 @@ const Notifications = () => {
   const { user, logout } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // 📱 Initialized as false so the side menu remains neatly hidden away on mobile page loads
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -54,13 +57,9 @@ const Notifications = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Grab your fallback base API string
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-    
-    // 💎 FIXED: Strips out the "/api" route suffix cleanly to construct your root connection domain URL
     const socketUrl = apiUrl.replace('/api', '');
     
-    // Initialize connection using stable websocket and polling transport sequences
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling']
     });
@@ -92,70 +91,86 @@ const Notifications = () => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#f8fafc] text-slate-900 font-sans antialiased">
+    <div className="flex h-screen w-full overflow-hidden bg-[#f8fafc] text-slate-900 font-sans antialiased relative">
       
-      {/* PERSISTENT SIDEBAR */}
-      <Sidebar isOpen={sidebarOpen} />
+      {/* 📱 MOBILE OVERLAY SHADOW DROP LAYER */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* SIDEBAR WRAPPER CONTAINER FRAME */}
+      <div className={`fixed inset-y-0 left-0 z-50 transform lg:static lg:translate-x-0 transition-transform duration-300 ease-in-out ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <Sidebar isOpen={true} />
+      </div>
 
       {/* CORE FRAME LAYOUT AREA */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden w-full">
         
         {/* TOP INTERACTIVE NAVBAR */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white px-8 shadow-xs">
-          <div className="flex items-center gap-3">
-            <span className="h-4 w-4 rounded-full border border-slate-300 bg-slate-50" />
-            <div>
-              <h2 className="text-sm font-black text-slate-800 leading-none">Welcome, {user?.name || 'Pawan'}</h2>
-              <p className="text-[11px] font-medium text-slate-400 mt-1">Enterprise Operations Panel</p>
-            </div>
+        <header className="flex h-20 shrink-0 items-center justify-between bg-white px-4 md:px-8 border-b border-slate-100">
+          <div className="flex items-center gap-4">
+            {/* 🍔 HAMBURGER MENU BUTTON */}
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-100 bg-white text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden cursor-pointer"
+            >
+              <Menu size={20} />
+            </button>
+
+            <h2 className="text-lg md:text-xl font-bold text-[#0f172a] tracking-tight">
+              Welcome, {user?.name.split(' ')[0] || 'Pawan'}
+            </h2>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Bell Indicator */}
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50/50 text-slate-600">
-              <Bell size={16} />
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-100 bg-white text-slate-700 shadow-sm">
+              <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                <span className="absolute top-3 right-3 h-3 w-3 rounded-full bg-amber-500 ring-2 ring-white animate-pulse" />
               )}
             </div>
 
-            {/* Profile Credentials Segment */}
-            <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-black text-slate-800 leading-none">{user?.name || 'Pawan Kalyan'}</p>
-                <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{user?.email || 'pavanthundar16@gmail.com'}</p>
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
-                {user?.name?.charAt(0).toUpperCase() || 'P'}
-              </div>
+            {/* Profile Avatar Segment */}
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-base font-bold text-emerald-700 border border-emerald-100/50">
+              {user?.name?.charAt(0).toUpperCase() || 'P'}
             </div>
 
             {/* Logout Trigger Button */}
             <button 
               onClick={logout}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-rose-600 transition-colors shadow-2xs cursor-pointer"
+              className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-100 bg-white text-slate-600 shadow-sm hover:bg-slate-50 hover:text-rose-600 transition-colors cursor-pointer"
             >
-              <LogOut size={13} />
-              <span>Logout</span>
+              <LogOut size={18} />
             </button>
           </div>
         </header>
 
         {/* WORKSPACE APP WORKSPACE WRAPPER */}
-        <main className="flex-1 overflow-y-auto p-8 lg:p-10">
-          <div className="max-w-5xl mx-auto">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10">
+          <div className="max-w-5xl mx-auto space-y-6">
             
             {/* COMPONENT PAGE TYPOGRAPHY HEADER */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
               <div>
-                <h1 className="text-2xl font-black tracking-tight text-slate-900">System Logs & Live Broadcasts</h1>
-                <p className="text-xs font-semibold text-slate-400 mt-1">Real-time telemetry event tracking and cross-operator notification history.</p>
+                <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900">System Logs & Live Broadcasts</h1>
+                <p className="text-xs font-semibold text-slate-400 mt-1">Real-time telemetry event tracking and notification history.</p>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={fetchHistory}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-2xs cursor-pointer"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-2xs cursor-pointer"
                 >
                   <RefreshCw size={13} className="text-slate-500" />
                   <span>Refresh</span>
@@ -163,23 +178,23 @@ const Notifications = () => {
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
-                    className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100/80 transition-all shadow-2xs cursor-pointer"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100/80 transition-all shadow-2xs cursor-pointer"
                   >
                     <CheckSquare size={14} />
-                    <span>Mark all read</span>
+                    <span className="whitespace-nowrap">Mark all read</span>
                   </button>
                 )}
               </div>
             </div>
 
             {/* GRID MODULE LAYOUT CARDS SYSTEM */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
               {/* LEFT-SIDE STATS / CARD DECK */}
-              <div className="lg:col-span-4 space-y-4">
+              <div className="lg:col-span-4 space-y-4 w-full">
                 <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
                   <h3 className="text-sm font-black text-slate-800 tracking-tight mb-4">Telemetry Deck</h3>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
                     <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 border border-amber-100">
                       <span className="text-xs font-bold text-amber-800">Unread Operational Alerts</span>
                       <span className="px-2.5 py-0.5 rounded-md text-xs font-black bg-amber-500 text-white shadow-2xs">{unreadCount}</span>
@@ -193,7 +208,7 @@ const Notifications = () => {
               </div>
 
               {/* RIGHT-SIDE LEDGER STREAM FEED */}
-              <div className="lg:col-span-8 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xs">
+              <div className="lg:col-span-8 rounded-2xl border border-slate-200/80 bg-white p-4 md:p-6 shadow-2xs w-full">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-4 mb-4">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                   <h3 className="text-xs font-black text-slate-400 tracking-wider uppercase">Live Activity Stream</h3>
@@ -211,7 +226,7 @@ const Notifications = () => {
                       <Bell size={20} />
                     </div>
                     <h4 className="text-sm font-black text-slate-800">Ecosystem Synchronized</h4>
-                    <p className="text-xs text-slate-400 max-w-xs mx-auto mt-1 font-medium">No outstanding telemetry events or notifications found.</p>
+                    <p className="text-xs text-slate-400 max-w-xs mx-auto mt-1 font-medium">No outstanding telemetry events found.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -227,14 +242,14 @@ const Notifications = () => {
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.98 }}
-                            className={`group relative flex gap-4 rounded-xl border p-4 transition-all bg-white ${
+                            className={`group relative flex gap-3 md:gap-4 rounded-xl border p-4 transition-all bg-white ${
                               notif.isRead 
                                 ? 'border-slate-100 opacity-60' 
                                 : 'border-emerald-500/20 shadow-xs ring-1 ring-emerald-500/5'
                             }`}
                           >
                             {isFirstNotification && (
-                              <span className="absolute top-4 right-4 bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500 rounded-md tracking-wider border border-slate-200">
+                              <span className="absolute top-4 right-4 hidden xs:block bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500 rounded-md tracking-wider border border-slate-200">
                                 ORIGIN NODE
                               </span>
                             )}
@@ -247,12 +262,12 @@ const Notifications = () => {
                               <IconComponent size={16} className="stroke-[2.2]" />
                             </div>
 
-                            <div className="flex-1 pr-6">
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-sm font-black text-slate-800 tracking-tight leading-none">
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="text-sm font-black text-slate-800 tracking-tight leading-none truncate max-w-[180px] xs:max-w-none">
                                   {notif.title}
                                 </h4>
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider ${
+                                <span className={`text-[8px] md:text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider whitespace-nowrap ${
                                   notif.type.includes('STOCK_IN') 
                                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
                                     : 'bg-amber-50 text-amber-600 border border-amber-200'
@@ -260,7 +275,7 @@ const Notifications = () => {
                                   {notif.type.replace('_', ' ')}
                                 </span>
                               </div>
-                              <p className="text-xs text-slate-500 font-medium leading-relaxed mt-1.5">
+                              <p className="text-xs text-slate-500 font-medium leading-relaxed mt-1.5 break-words">
                                 {notif.message}
                               </p>
                               

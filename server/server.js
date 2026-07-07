@@ -1,5 +1,5 @@
 import express from 'express';
-import { createServer } from 'http'; // Required to attach Socket.io alongside Express
+import { createServer } from 'http'; 
 import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/db.js';
@@ -9,8 +9,9 @@ import productRoutes from './routes/productRoutes.js';
 import supplierRoutes from './routes/supplierRoutes.js';
 import logRoutes from './routes/logRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js'; // Imported notification lines
-import { initSocket } from './socket.js'; // Imported socket initializer
+import notificationRoutes from './routes/notificationRoutes.js'; 
+import ocrRoutes from './routes/ocr.js'; // 🚀 Import Groq OCR pipeline router
+import { initSocket } from './socket.js'; 
 
 // Initialize context environments
 dotenv.config();
@@ -19,7 +20,7 @@ dotenv.config();
 connectDB();
 
 const app = express();
-const httpServer = createServer(app); // Wrapped Express app in HTTP Server
+const httpServer = createServer(app); 
 
 // Initialize WebSockets matrix
 initSocket(httpServer);
@@ -43,7 +44,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/notifications', notificationRoutes); // Attached secure notification endpoints
+app.use('/api/notifications', notificationRoutes); 
+app.use('/api/ocr', ocrRoutes); // 🚀 Attached Groq AI extraction endpoint
 
 // Fallback Global Error Parsing Interceptor Pipeline
 app.use(errorHandler);

@@ -10,10 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@tailwindcss/vite": "^4.3.2",
     "axios": "^1.18.1",
+    "bwip-js": "^4.11.2",
     "framer-motion": "^12.42.2",
     "html5-qrcode": "^2.3.8",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -22,6 +26,7 @@
     "recharts": "^3.9.1",
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.3.2",
+    "three": "^0.185.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

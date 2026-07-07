@@ -9,7 +9,8 @@ import {
   X,
   Loader2,
   ScanBarcode,
-  AlertTriangle
+  AlertTriangle,
+  Printer // 🖨️ New Lucide Icon Added
 } from 'lucide-react';
 
 import toast from 'react-hot-toast';
@@ -18,6 +19,9 @@ import DashboardLayout from '../components/DashboardLayout';
 import PageTransition from '../components/PageTransition';
 import BarcodeScannerModal from '../components/BarcodeScannerModal';
 import API from '../api/axiosInstance';
+
+// 🖨️ Hooking your new PDF Barcode Asset Component Logic Layer
+import { generateAssetLabelPDF } from '../components/BarcodeLabelGenerator';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -404,6 +408,15 @@ const Products = () => {
 
                         <td className="px-6 py-5">
                           <div className="flex justify-end gap-1.5">
+                            {/* 🖨️ NEW FEATURE-4 PRINT TAG ACTION BUTTON BUTTON */}
+                            <button
+                              onClick={() => generateAssetLabelPDF(product)}
+                              className="rounded-xl p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-800 cursor-pointer"
+                              title="Print Asset Tag Label"
+                            >
+                              <Printer size={16} />
+                            </button>
+
                             <button
                               onClick={() => handleOpenModal(product)}
                               className="rounded-xl p-2 text-slate-400 transition-all hover:bg-primary-50 hover:text-primary-600 cursor-pointer"

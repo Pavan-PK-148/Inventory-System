@@ -15,9 +15,12 @@ import PageTransition from '../components/PageTransition';
 import API from '../api/axiosInstance';
 import toast from 'react-hot-toast';
 
+// 🚀 Integrated Futuristic Feature Modules
+import WarehouseHeatmap from '../components/WarehouseHeatmap';
+import Warehouse3D from '../components/Warehouse3D';
+
 const Dashboard = () => {
   const navigate = useNavigate();
-
   const [loading, setLoading] = useState(true);
 
   const [data, setData] = useState({
@@ -154,7 +157,7 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <PageTransition>
-        <div className="relative space-y-8 overflow-hidden">
+        <div className="relative space-y-8 overflow-hidden pb-12">
           {/* Background Decorations */}
           <div className="pointer-events-none absolute -top-20 -left-20 h-72 w-72 rounded-full bg-primary-200/30 blur-3xl" />
           <div className="pointer-events-none absolute top-40 right-0 h-80 w-80 rounded-full bg-cyan-200/20 blur-3xl" />
@@ -241,6 +244,16 @@ const Dashboard = () => {
                 </motion.div>
               );
             })}
+          </motion.div>
+
+          {/* 📡 PHASE 1: REAL-TIME WAREHOUSE HEATMAP GRID */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="w-full"
+          >
+            <WarehouseHeatmap />
           </motion.div>
 
           {/* LOWER GRID */}
@@ -370,6 +383,16 @@ const Dashboard = () => {
               </div>
             </motion.div>
           </div>
+
+          {/* 🏢 PHASE 3: DIGITAL TWIN 3D WAREHOUSE FULL-WIDTH VIEW */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="w-full"
+          >
+            <Warehouse3D />
+          </motion.div>
         </div>
       </PageTransition>
     </DashboardLayout>
